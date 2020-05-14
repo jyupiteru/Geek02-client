@@ -1,4 +1,6 @@
 
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+
 #include<WinSock2.h>
 #include<stdio.h>
 
@@ -7,11 +9,17 @@ int main(void)
 {
 
 	WSADATA wsaData;
+	SOCKET sock;
 
-	//winsockの初期化 第一引数にはwinsockのバージョンを入れる
+	//接続先の情報を入れる構造体
+	sockaddr_in server;
+
+	char buf[32];
+
+	//winsock2の初期化
 	int err = WSAStartup(MAKEWORD(2, 0), &wsaData);
-
-	//winsockのエラー処理　必須！
+	
+	//winsock2のエラー処理　必須！
 	if (err != 0)
 	{
 		switch (err)
@@ -43,16 +51,28 @@ int main(void)
 		}
 	}
 
-	SOCKET sock;
-
-	sock = socket(AF_UNSPEC, SOCK_STREAM, 0);
-
-	//socketが正常に実行できているかの確認
+	//ソケットの作成
+	sock = socket(AF_INET, SOCK_STREAM, 0);
+	
+	//socketのエラー処理
 	if (sock == INVALID_SOCKET)
 	{
 		printf("error : %d\n", WSAGetLastError());
 		return 1;
 	}
+
+	//接続先指定用構造体の準備
+	server.sin_family = AF_INET;							//アドレスファミリ
+	server.sin_port = htons(12345);							//ポート番号
+	server.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");	//IPアドレス
+
+	//サーバに接続
+	connect(sock, (sockaddr *)&server, sizeof(server));
+
+	//サーバからデータを受信
+	memset(buf, 0, sizeof(buf));//多めにバイトをとっているのでその削除？
+	int n = recv(sock, buf, sizeof(buf), 0);//メッセージを受信するバッファ、一度に受信するバイト数
+	printf("%d , %s\n",n,buf);
 
 	//winsockの終了
 	WSACleanup();
